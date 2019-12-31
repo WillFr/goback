@@ -4,7 +4,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,13 +17,13 @@ func ParseLine(line []byte) model.DataPoint {
 	for line[i] != ',' {
 		i++
 	}
-	price, _ := strconv.ParseFloat(string(line[oi:i]), 64)
+	price := parseFloat(line[oi:i])
 	i = len(line) - 1
 	oi = i + 1
 	for line[i] != ',' {
 		i--
 	}
-	volume, _ := strconv.ParseFloat(string(line[i+1:oi]), 64)
+	volume := parseFloat(line[i+1:oi])
 	return model.DataPoint{Date: datetime, Price: price, Volume: volume}
 }
 
@@ -54,3 +53,22 @@ func parseDate(date []byte) (time.Time, error) {
 	minute := (int(date[14])-'0')*10 + int(date[15]) - '0'
 	return time.Date(year, month, day, hour, minute, 0, 0, time.UTC), nil
 }
+
+func parseFloat(str []byte) float64 {
+	res := 0
+	div := 0
+	for _,  c := range str  {
+		if c == '.' {
+			div = 1
+			continue
+		}
+		res = res*10 + (int(c)   - '0')
+		div *= 10
+	}
+	div = div 
+	if div > 0{
+		return float64(res)   / float64(div)
+	}
+	return float64(res)
+}
+
