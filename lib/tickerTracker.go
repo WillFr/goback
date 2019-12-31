@@ -27,7 +27,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 			if !scanner.Scan() {
 				break
 			}
-			line := scanner.Text()
+			line := scanner.Bytes()
 			if len(line) > 20 {
 				dp := ParseLine(line)
 				stashed = &dp
