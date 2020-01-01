@@ -11,7 +11,7 @@ import (
 )
 
 func ParseLine(line []byte) model.DataPoint {
-	datetime, _ := parseDate(line)
+	datetime := parseDate(line)
 	oi := 17
 	i := 18
 	for line[i] != ',' {
@@ -45,13 +45,13 @@ func OpenTicker(name string) *os.File {
 	return file
 }
 
-func parseDate(date []byte) (time.Time, error) {
+func parseDate(date []byte) time.Time {
 	year := (((int(date[6])-'0')*10+int(date[7])-'0')*10+int(date[8])-'0')*10 + int(date[9]) - '0'
 	month := time.Month((int(date[0])-'0')*10 + int(date[1]) - '0')
 	day := (int(date[3])-'0')*10 + int(date[4]) - '0'
 	hour := (int(date[11])-'0')*10 + int(date[12]) - '0'
 	minute := (int(date[14])-'0')*10 + int(date[15]) - '0'
-	return time.Date(year, month, day, hour, minute, 0, 0, time.UTC), nil
+	return time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 }
 
 func parseFloat(str []byte) float64 {

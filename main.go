@@ -76,8 +76,11 @@ func main() {
 		lib.DrawGraph(gainPts, capitalPts, opPts)
 		os.Exit(1)
 	}()
-
+	
 	for _, ticker := range tickers {
+
+
+		fmt.Println(ticker)
 		inputs[nbChan] = make(chan time.Time)
 		outputs[nbChan] = make(chan time.Time)
 		go lib.TrackTicker(ticker, &strategyInputs, inputs[nbChan], outputs[nbChan])
@@ -147,7 +150,7 @@ func main() {
 	lib.GenerateHistory()
 
 	fmt.Println("Verifying :")
-	fmt.Println(lib.Verify(globals.History))
+	fmt.Println(lib.Verify(globals.History, &strategyInputs))
 
-	os.Exit(int(globals.Total))
+	//os.Exit(int(globals.Total))
 }

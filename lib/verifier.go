@@ -7,16 +7,20 @@ import (
 	"github.com/willfr/goback/model"
 )
 
-func Verify(history []model.PortfolioAction) float64 {
+func Verify(history []model.PortfolioAction, inputs *model.StrategyInputs) float64 {
 	sort.Slice(history, func(i, j int) bool {
-		return history[i].Name < history[j].Name && history[i].Date.Before(history[j].Date)
+		return history[i].Date.Before(history[j].Date)
 	})
 	gain := 0.0
+	capital := (*inputs).InitialCapital
 	gainPerTicker := make(map[string]float64)
-	fmt.Println(history)
 	for _, action := range history {
 		diff := -action.Quantity * action.Price
 		gain += diff
+		capital += diff
+		if capital < 0{
+			fmt.Println(action.Date, "  ", action, ">>>", diff, " : ", capital )
+		}
 		gainPerTicker[action.Name] += diff
 	}
 	fmt.Println("verified gain: ", gain)
