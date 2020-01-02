@@ -15,7 +15,13 @@ func Verify(history []model.PortfolioAction, inputs *model.StrategyInputs) float
 	capital := (*inputs).InitialCapital
 	gainPerTicker := make(map[string]float64)
 	for _, action := range history {
-		diff := -action.Quantity * action.Price
+		price:=0.0
+		if action.Quantity<0 {
+			price = action.Low
+		} else {
+			price = action.Price
+		}
+		diff := -action.Quantity * price
 		gain += diff
 		capital += diff
 		if capital < 0{

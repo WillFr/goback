@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"os"
 	"bufio"
 	"container/list"
 	"math"
@@ -21,19 +22,50 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 	boughtAt := float64(0.0)
 	lastBought := 0
 	var currentTime time.Time
-	scanner := bufio.NewScanner(OpenTicker(ticker))
 
+	binFilePath := GetTickerFilePath(ticker) + ".bin"
+	_, err := os.Stat(binFilePath)
+	parseFromBin := false
+	var writer *bufio.Writer
+	var reader *bufio.Reader
+	var scanner *bufio.Scanner
+	if os.IsNotExist(err) {
+		scanner = bufio.NewScanner(OpenTicker(ticker))
+		f,_ := os.OpenFile(binFilePath, os.O_CREATE, 0600)
+		writer = bufio.NewWriter(f)
+		defer writer.Flush()
+	} else {
+		parseFromBin = true
+		f,_ := os.Open(binFilePath)
+		reader = bufio.NewReader(f)
+	}
+
+	lineI := 0
 	for {
+		lineI++
 		if stashed == nil {
-			if !scanner.Scan() {
-				break
-			}
-			line := scanner.Bytes()
-			if len(line) > 20 {
+			if !parseFromBin {
+				if !scanner.Scan() {
+					break
+				}
+				line := scanner.Bytes()
 				dp := ParseLine(line)
-				stashed = &dp
-			} else {
-				continue
+				if dp == nil {
+					continue
+				}
+				//data, err := bson.Marshal(&d)
+				
+				WriteToBin(writer, dp)
+				if lineI % 1000 == 0 {
+					writer.Flush()
+				}
+				stashed = dp
+			} else{
+				var err error
+				stashed, err =ReadFromBin(reader)
+				if err != nil {
+					break
+				}
 			}
 		}
 		currentTime = <-input
@@ -54,12 +86,12 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 				_action, _reason := (*strategy).Decide(windowQ, &current, bought, boughtAt, lastBought, volumeSum)
 				if _action != action.NONE {
 					if _action == action.SOLD {
-						gain = bought*(current.Price-boughtAt) - (*strategy).Commission
+						gain = bought*(current.Low-boughtAt) - (*strategy).Commission
 						//tax := 0.0
 						//if gain > 0 {
 						//	tax = gain * 0.00
 						//}
-						revenue = bought*current.Price /*- tax*/ - (*strategy).Commission
+						revenue = bought*current.Low /*- tax*/ - (*strategy).Commission
 
 						globals.Mutex.Lock()
 						globals.Invested -= bought * boughtAt
@@ -75,7 +107,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 							globals.Stoped++
 						}
 						delete(globals.Portfolio, ticker)
-						globals.History = append(globals.History, model.PortfolioAction{Date: current.Date, Quantity: -bought, Name: ticker, Price: current.Price})
+						globals.History = append(globals.History, model.PortfolioAction{Date: current.Date, Quantity: -bought, Name: ticker, Price: current.Price, Low: current.Low})
 						globals.Mutex.Unlock()
 
 						bought = 0
@@ -88,7 +120,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 						if globals.Capital > batch {
 							prevBought := bought
 							bought = math.Floor(batch / current.Price)
-							globals.Portfolio[ticker]+= bought
+							globals.Portfolio[ticker] += bought
 							paid := bought * current.Price
 							globals.Invested += paid
 							boughtAt = (current.Price*bought + prevBought*boughtAt) / (bought + prevBought)
@@ -103,14 +135,14 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 						globals.Mutex.Unlock()
 					}
 				}
-		}
+			}
 			output <- currentTime.Add(time.Minute * time.Duration(1))
 		} else {
 			output <- (*stashed).Date
 		}
 	}
 
-	if bought> 0 {
+	if bought > 0 {
 
 		globals.Mutex.Lock()
 		globals.Invested -= bought * boughtAt
@@ -119,8 +151,8 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 		delete(globals.Portfolio, ticker)
 		globals.History = append(globals.History, model.PortfolioAction{Date: currentTime, Quantity: -bought, Name: ticker, Price: boughtAt})
 
-		globals.Mutex.Unlock()  
-}
+		globals.Mutex.Unlock()
+	}
 	// receive one last time because o the loop below
 	<-input
 	close(output)

@@ -7,4 +7,5 @@ type PortfolioAction struct {
 	Quantity float64
 	Date     time.Time
 	Price    float64
+	Low    float64
 }
