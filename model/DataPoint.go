@@ -1,10 +1,9 @@
 package model
 
-import "time"
-
 type DataPoint struct {
-	Date   time.Time
+	Date   SimplifiedDate
 	Price  float64
 	Low    float64
 	Volume float64
 }
+

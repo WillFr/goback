@@ -1,11 +1,10 @@
 package model
 
-import "time"
 
 type PortfolioAction struct {
 	Name     string
 	Quantity float64
-	Date     time.Time
+	Date     SimplifiedDate
 	Price    float64
 	Low    float64
 }

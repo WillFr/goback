@@ -5,8 +5,7 @@ import (
 	"bufio"
 	"container/list"
 	"math"
-	"time"
-	//"fmt"
+	"fmt"
 
 	"github.com/willfr/goback/globals"
 	"github.com/willfr/goback/model"
@@ -14,14 +13,14 @@ import (
 	"github.com/willfr/goback/model/reason"
 )
 
-func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.Time, output chan time.Time) {
+func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model.SimplifiedDate, output chan model.SimplifiedDate) {
 	windowQ := list.New()
 	volumeSum := 0.0
 	var stashed *model.DataPoint = nil
 	bought := float64(0.0)
 	boughtAt := float64(0.0)
-	lastBought := 0
-	var currentTime time.Time
+	lastBought := int32(0)
+	var currentTime model.SimplifiedDate
 
 	binFilePath := GetTickerFilePath(ticker) + ".bin"
 	_, err := os.Stat(binFilePath)
@@ -40,9 +39,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 		reader = bufio.NewReader(f)
 	}
 
-	lineI := 0
 	for {
-		lineI++
 		if stashed == nil {
 			if !parseFromBin {
 				if !scanner.Scan() {
@@ -52,17 +49,12 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 				dp := ParseLine(line)
 				if dp == nil {
 					continue
-				}
-				//data, err := bson.Marshal(&d)
-				
+				}				
 				WriteToBin(writer, dp)
-				if lineI % 1000 == 0 {
-					writer.Flush()
-				}
 				stashed = dp
 			} else{
 				var err error
-				stashed, err =ReadFromBin(reader)
+				stashed,err=ReadFromBin(reader)
 				if err != nil {
 					break
 				}
@@ -87,11 +79,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 				if _action != action.NONE {
 					if _action == action.SOLD {
 						gain = bought*(current.Low-boughtAt) - (*strategy).Commission
-						//tax := 0.0
-						//if gain > 0 {
-						//	tax = gain * 0.00
-						//}
-						revenue = bought*current.Low /*- tax*/ - (*strategy).Commission
+						revenue = bought*current.Low - (*strategy).Commission
 
 						globals.Mutex.Lock()
 						globals.Invested -= bought * boughtAt
@@ -125,7 +113,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 							globals.Invested += paid
 							boughtAt = (current.Price*bought + prevBought*boughtAt) / (bought + prevBought)
 							revenue = -paid - strategy.Commission
-							lastBought = current.Date.Day()
+							lastBought = current.Date.Day
 							globals.Capital += revenue
 							globals.OpCount++
 							globals.History = append(globals.History, model.PortfolioAction{Date: current.Date, Quantity: bought, Name: ticker, Price: current.Price})
@@ -136,20 +124,19 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan time.
 					}
 				}
 			}
-			output <- currentTime.Add(time.Minute * time.Duration(1))
+			
+			output <- currentTime.AddMinute()
 		} else {
 			output <- (*stashed).Date
 		}
 	}
 
 	if bought > 0 {
-
 		globals.Mutex.Lock()
 		globals.Invested -= bought * boughtAt
 		globals.Capital += bought * boughtAt
-
 		delete(globals.Portfolio, ticker)
-		globals.History = append(globals.History, model.PortfolioAction{Date: currentTime, Quantity: -bought, Name: ticker, Price: boughtAt})
+		globals.History = append(globals.History, model.PortfolioAction{Date: currentTime, Quantity: -bought, Name: ticker, Price: boughtAt, Low: boughtAt})
 
 		globals.Mutex.Unlock()
 	}

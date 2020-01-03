@@ -41,9 +41,9 @@ func main() {
 		Limit:           *limitP,
 		Stop:            *stopP,
 		Commission:      *commissionP,
-		Cutoff:          *cutoffP,
-		StartH:          *startHP,
-		StartHM:         *startHMP,
+		Cutoff:          int32(*cutoffP),
+		StartH:          int32(*startHP),
+		StartHM:         int32(*startHMP),
 		MinVolumeSum:    *minVolumeSumP}
 
 	maxFile := *maxFileP
@@ -51,18 +51,18 @@ func main() {
 	globals.Total = float64(0)
 	globals.OpCount = 0
 	globals.Capital = strategyInputs.InitialCapital
-	MAX_TIME, _ := time.Parse("01/02/2006,15:04", "01/01/2070,00:01")
+	MAX_TIME := model.SimplifiedDate{Year: 2070}
 
 	tickers := lib.ListTickers("C:\\Users\\Guillaume\\Desktop\\stocks\\intraday\\")
 	//shuffle the files
 	rand.Seed(randSeed)
 	rand.Shuffle(len(tickers), func(i, j int) { tickers[i], tickers[j] = tickers[j], tickers[i] })
 
-	clock, _ := time.Parse("01/02/2006,15:04", "01/01/1997,00:01")
+	clock := model.SimplifiedDate{Year: 1997, Month: 01, Day: 01 }
 
 	nbChan := 0
-	inputs := make([]chan time.Time, 600)
-	outputs := make([]chan time.Time, 600)
+	inputs := make([]chan model.SimplifiedDate, 600)
+	outputs := make([]chan model.SimplifiedDate, 600)
 	closedChan := make([]bool, 600)
 
 	gainPts := plotter.XYs{}
@@ -78,11 +78,9 @@ func main() {
 	}()
 	
 	for _, ticker := range tickers {
-
-
 		fmt.Println(ticker)
-		inputs[nbChan] = make(chan time.Time)
-		outputs[nbChan] = make(chan time.Time)
+		inputs[nbChan] = make(chan model.SimplifiedDate)
+		outputs[nbChan] = make(chan model.SimplifiedDate)
 		go lib.TrackTicker(ticker, &strategyInputs, inputs[nbChan], outputs[nbChan])
 		inputs[nbChan] <- clock
 
@@ -92,10 +90,9 @@ func main() {
 		}
 	}
 
-	end, _ := time.Parse("01/02/2006,15:04", "01/01/2020,00:01")
 	nbClosed := 0
 	dpI := 0
-	for clock.Before(end) && nbClosed < nbChan {
+	for nbClosed < nbChan {
 		min := MAX_TIME
 
 		for i := 0; i < nbChan; i++ {
@@ -145,6 +142,7 @@ func main() {
 
 	fmt.Printf("GAIN: %.2f \n", globals.Total)
 	fmt.Printf("CAPITAL: %.2f \n", globals.Capital)
+	fmt.Printf("INVESTED: %.2f \n", globals.Invested)
 	lib.DrawGraph(gainPts, capitalPts, opPts)
 	lib.SaveRun()
 	lib.GenerateHistory()

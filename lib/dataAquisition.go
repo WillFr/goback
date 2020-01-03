@@ -5,7 +5,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/willfr/goback/model"
 )
@@ -15,11 +14,7 @@ func ParseLine(line []byte) *model.DataPoint {
 		return nil
 	}
 	datetime := parseDate(line)
-	marketHourCondition := datetime.Hour() < 16 && (datetime.Hour() > 9 || datetime.Hour() == 9 && datetime.Minute() > 30)
 
-	if !marketHourCondition {
-		return nil
-	}
 	oi := 17
 	i := 18
 	//open
@@ -73,13 +68,13 @@ func OpenTicker(name string) *os.File {
 	return file
 }
 
-func parseDate(date []byte) time.Time {
-	year := (((int(date[6])-'0')*10+int(date[7])-'0')*10+int(date[8])-'0')*10 + int(date[9]) - '0'
-	month := time.Month((int(date[0])-'0')*10 + int(date[1]) - '0')
-	day := (int(date[3])-'0')*10 + int(date[4]) - '0'
-	hour := (int(date[11])-'0')*10 + int(date[12]) - '0'
-	minute := (int(date[14])-'0')*10 + int(date[15]) - '0'
-	return time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+func parseDate(date []byte) model.SimplifiedDate {
+	year := (((int32(date[6])-'0')*10+int32(date[7])-'0')*10+int32(date[8])-'0')*10 + int32(date[9]) - '0'
+	month := (int32(date[0])-'0')*10 + int32(date[1]) - '0'
+	day := (int32(date[3])-'0')*10 + int32(date[4]) - '0'
+	hour := (int32(date[11])-'0')*10 + int32(date[12]) - '0'
+	minute := (int32(date[14])-'0')*10 + int32(date[15]) - '0'
+	return model.SimplifiedDate{Year: year, Month: month, Day: day, Hour: hour, Minute: minute}
 }
 
 func parseFloat(str []byte) float64 {

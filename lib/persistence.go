@@ -8,7 +8,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/willfr/goback/globals"
 )
@@ -29,7 +28,7 @@ func GenerateHistory() {
 	f2.Truncate(0)
 	f2.Seek(0, 0)
 	for _, h := range globals.History {
-		f2.WriteString(h.Name + " " + h.Date.Format(time.RFC3339) + " " + fmt.Sprintf("%.0f", h.Quantity) + " " + fmt.Sprintf("%f", h.Price) + " \r\n")
+		f2.WriteString(h.Name + " " + h.Date.Format() + " " + fmt.Sprintf("%.0f", h.Quantity) + " " + fmt.Sprintf("%f", h.Price) + " \r\n")
 	}
 	f2.Sync()
 }
@@ -42,12 +41,14 @@ type binDataPoint struct {
 }
 
 func WriteToBin(writer *bufio.Writer, dp *model.DataPoint) {
-	binary.Write(writer, binary.LittleEndian, binDataPoint{Date: dp.Date.Unix(), Price: dp.Price, Low: dp.Low, Volume: dp.Volume})
+	err:= binary.Write(writer, binary.LittleEndian, dp)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func ReadFromBin(reader *bufio.Reader) (*model.DataPoint, error) {
-	var bdp binDataPoint
-	err:= binary.Read(reader, binary.LittleEndian, &bdp)
-	dp := &model.DataPoint{Date: time.Unix(bdp.Date, 0).UTC(), Price: bdp.Price, Low: bdp.Low, Volume: bdp.Volume}
-	return dp, err
+	var returnValue model.DataPoint
+	err:= binary.Read(reader, binary.LittleEndian, &returnValue)
+	return &returnValue, err
 }
