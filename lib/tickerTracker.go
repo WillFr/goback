@@ -1,11 +1,11 @@
 package lib
 
 import (
-	"os"
 	"bufio"
 	"container/list"
+	//"fmt"
 	"math"
-	"fmt"
+	"os"
 
 	"github.com/willfr/goback/globals"
 	"github.com/willfr/goback/model"
@@ -19,7 +19,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 	var stashed *model.DataPoint = nil
 	bought := float64(0.0)
 	boughtAt := float64(0.0)
-	lastBought := int32(0)
+	lastBought := uint8(0)
 	var currentTime model.SimplifiedDate
 
 	binFilePath := GetTickerFilePath(ticker) + ".bin"
@@ -30,14 +30,15 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 	var scanner *bufio.Scanner
 	if os.IsNotExist(err) {
 		scanner = bufio.NewScanner(OpenTicker(ticker))
-		f,_ := os.OpenFile(binFilePath, os.O_CREATE, 0600)
+		f, _ := os.OpenFile(binFilePath, os.O_CREATE, 0600)
 		writer = bufio.NewWriter(f)
 		defer writer.Flush()
 	} else {
 		parseFromBin = true
-		f,_ := os.Open(binFilePath)
+		f, _ := os.Open(binFilePath)
 		reader = bufio.NewReader(f)
 	}
+	encoderDecoder := NewEncoderDecoder(writer, reader)
 
 	for {
 		if stashed == nil {
@@ -49,12 +50,12 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 				dp := ParseLine(line)
 				if dp == nil {
 					continue
-				}				
-				WriteToBin(writer, dp)
+				}
+				encoderDecoder.WriteToBin(dp)
 				stashed = dp
-			} else{
+			} else {
 				var err error
-				stashed,err=ReadFromBin(reader)
+				stashed, err = encoderDecoder.ReadFromBin()
 				if err != nil {
 					break
 				}
@@ -124,7 +125,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 					}
 				}
 			}
-			
+
 			output <- currentTime.AddMinute()
 		} else {
 			output <- (*stashed).Date

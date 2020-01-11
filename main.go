@@ -41,9 +41,9 @@ func main() {
 		Limit:           *limitP,
 		Stop:            *stopP,
 		Commission:      *commissionP,
-		Cutoff:          int32(*cutoffP),
-		StartH:          int32(*startHP),
-		StartHM:         int32(*startHMP),
+		Cutoff:          uint8(*cutoffP),
+		StartH:          uint8(*startHP),
+		StartHM:         uint8(*startHMP),
 		MinVolumeSum:    *minVolumeSumP}
 
 	maxFile := *maxFileP
@@ -58,7 +58,7 @@ func main() {
 	rand.Seed(randSeed)
 	rand.Shuffle(len(tickers), func(i, j int) { tickers[i], tickers[j] = tickers[j], tickers[i] })
 
-	clock := model.SimplifiedDate{Year: 1997, Month: 01, Day: 01 }
+	clock := model.SimplifiedDate{Year: 1997, Month: 01, Day: 01}
 
 	nbChan := 0
 	inputs := make([]chan model.SimplifiedDate, 600)
@@ -76,7 +76,7 @@ func main() {
 		lib.DrawGraph(gainPts, capitalPts, opPts)
 		os.Exit(1)
 	}()
-	
+
 	for _, ticker := range tickers {
 		fmt.Println(ticker)
 		inputs[nbChan] = make(chan model.SimplifiedDate)

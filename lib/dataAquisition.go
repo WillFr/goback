@@ -69,11 +69,11 @@ func OpenTicker(name string) *os.File {
 }
 
 func parseDate(date []byte) model.SimplifiedDate {
-	year := (((int32(date[6])-'0')*10+int32(date[7])-'0')*10+int32(date[8])-'0')*10 + int32(date[9]) - '0'
-	month := (int32(date[0])-'0')*10 + int32(date[1]) - '0'
-	day := (int32(date[3])-'0')*10 + int32(date[4]) - '0'
-	hour := (int32(date[11])-'0')*10 + int32(date[12]) - '0'
-	minute := (int32(date[14])-'0')*10 + int32(date[15]) - '0'
+	year := (((uint16(date[6])-'0')*10+uint16(date[7])-'0')*10+uint16(date[8])-'0')*10 + uint16(date[9]) - '0'
+	month := (uint8(date[0])-'0')*10 + uint8(date[1]) - '0'
+	day := (uint8(date[3])-'0')*10 + uint8(date[4]) - '0'
+	hour := (uint8(date[11])-'0')*10 + uint8(date[12]) - '0'
+	minute := (uint8(date[14])-'0')*10 + uint8(date[15]) - '0'
 	return model.SimplifiedDate{Year: year, Month: month, Day: day, Hour: hour, Minute: minute}
 }
 
