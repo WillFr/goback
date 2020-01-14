@@ -61,8 +61,7 @@ func main() {
 	clock := model.SimplifiedDate{Year: 1997, Month: 01, Day: 01}
 
 	nbChan := 0
-	inputs := make([]chan model.SimplifiedDate, 600)
-	outputs := make([]chan model.SimplifiedDate, 600)
+	inputs := make([]chan byte, 600)
 	closedChan := make([]bool, 600)
 
 	gainPts := plotter.XYs{}
@@ -80,8 +79,7 @@ func main() {
 	for _, ticker := range tickers {
 		fmt.Println(ticker)
 		inputs[nbChan] = make(chan model.SimplifiedDate)
-		outputs[nbChan] = make(chan model.SimplifiedDate)
-		go lib.TrackTicker(ticker, &strategyInputs, inputs[nbChan], outputs[nbChan])
+		go lib.TrackTicker(ticker, &strategyInputs, inputs[nbChan])
 		inputs[nbChan] <- clock
 
 		nbChan++
@@ -99,7 +97,7 @@ func main() {
 			if closedChan[i] {
 				continue
 			}
-			t, open := <-outputs[i]
+			t, open := <-inputs[i]
 
 			if open {
 				if t.Before(min) {
@@ -109,7 +107,6 @@ func main() {
 				}
 			} else if !open {
 				closedChan[i] = true
-				close(inputs[i])
 				nbClosed++
 			}
 		}

@@ -13,7 +13,7 @@ import (
 	"github.com/willfr/goback/model/reason"
 )
 
-func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model.SimplifiedDate, output chan model.SimplifiedDate) {
+func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model.SimplifiedDate) {
 	windowQ := list.New()
 	volumeSum := 0.0
 	var stashed *model.DataPoint = nil
@@ -126,9 +126,9 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 				}
 			}
 
-			output <- currentTime.AddMinute()
+			input <- currentTime.AddMinute()
 		} else {
-			output <- (*stashed).Date
+			input <- (*stashed).Date
 		}
 	}
 
@@ -143,5 +143,5 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 	}
 	// receive one last time because o the loop below
 	<-input
-	close(output)
+	close(input)
 }
