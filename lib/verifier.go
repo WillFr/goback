@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/willfr/goback/model"
 )
@@ -14,9 +15,12 @@ func Verify(history []model.PortfolioAction, inputs *model.StrategyInputs) float
 	gain := 0.0
 	capital := (*inputs).InitialCapital
 	gainPerTicker := make(map[string]float64)
+	datePerTicker := make(map[string]int32)
+	averageTimeHeld := time.Second * 0
+	averageTimeHeldCount := 0
 	for _, action := range history {
-		price:=0.0
-		if action.Quantity<0 {
+		price := 0.0
+		if action.Quantity < 0 {
 			price = action.Low
 		} else {
 			price = action.Price
@@ -24,10 +28,18 @@ func Verify(history []model.PortfolioAction, inputs *model.StrategyInputs) float
 		diff := -action.Quantity * price
 		gain += diff
 		capital += diff
-		if capital < 0{
-			fmt.Println(action.Date, "  ", action, ">>>", diff, " : ", capital )
+		if capital < 0 {
+			fmt.Println(action.Date, "  ", action, ">>>", diff, " : ", capital)
 		}
 		gainPerTicker[action.Name] += diff
+		if _, ok := datePerTicker[action.Name]; ok {
+			if action.Quantity > 0 {
+				averageTimeHeld += time.Second * time.Duration(action.Date.Unix()-datePerTicker[action.Name])
+				averageTimeHeldCount++
+			}
+		} else {
+			datePerTicker[action.Name] = action.Date.Unix()
+		}
 	}
 	fmt.Println("verified gain: ", gain)
 	type Pair struct {
@@ -43,6 +55,7 @@ func Verify(history []model.PortfolioAction, inputs *model.StrategyInputs) float
 	sort.Slice(tickerList, func(i, j int) bool {
 		return tickerList[i].val < tickerList[j].val
 	})
+	fmt.Println("Average time held: ", float64(averageTimeHeld)/float64(averageTimeHeldCount))
 	fmt.Println("Bottom 10: ")
 	for i := 0; i < min(len(tickerList), 10); i++ {
 		fmt.Println(i, " ", tickerList[i].key, ": ", tickerList[i].val)

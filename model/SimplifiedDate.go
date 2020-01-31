@@ -17,7 +17,7 @@ func (a SimplifiedDate) Before(b SimplifiedDate) bool {
 }
 
 func (a SimplifiedDate) Format() string {
-	return fmt.Sprintf("%4d-%2d-%2dT%2d:%2d:00", a.Year, a.Month, a.Day, a.Hour, a.Minute)
+	return fmt.Sprintf("%04d-%02d-%02dT%02d:%02d:00", a.Year, a.Month, a.Day, a.Hour, a.Minute)
 }
 
 func (a SimplifiedDate) AddMinute() SimplifiedDate {

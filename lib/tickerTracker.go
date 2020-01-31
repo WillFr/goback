@@ -13,14 +13,14 @@ import (
 	"github.com/willfr/goback/model/reason"
 )
 
-func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model.SimplifiedDate) {
+func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan *model.SimplifiedDate) {
 	windowQ := list.New()
 	volumeSum := 0.0
 	var stashed *model.DataPoint = nil
 	bought := float64(0.0)
 	boughtAt := float64(0.0)
 	lastBought := uint8(0)
-	var currentTime model.SimplifiedDate
+	var currentTime *model.SimplifiedDate
 
 	binFilePath := GetTickerFilePath(ticker) + ".bin"
 	_, err := os.Stat(binFilePath)
@@ -62,7 +62,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 			}
 		}
 		currentTime = <-input
-		if (*stashed).Date == currentTime {
+		if (*stashed).Date == *currentTime {
 			current := *stashed
 			stashed = nil
 
@@ -126,9 +126,10 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 				}
 			}
 
-			input <- currentTime.AddMinute()
+			next := currentTime.AddMinute()
+			input <- &next
 		} else {
-			input <- (*stashed).Date
+			input <- &((*stashed).Date)
 		}
 	}
 
@@ -137,7 +138,7 @@ func TrackTicker(ticker string, strategy *model.StrategyInputs, input chan model
 		globals.Invested -= bought * boughtAt
 		globals.Capital += bought * boughtAt
 		delete(globals.Portfolio, ticker)
-		globals.History = append(globals.History, model.PortfolioAction{Date: currentTime, Quantity: -bought, Name: ticker, Price: boughtAt, Low: boughtAt})
+		globals.History = append(globals.History, model.PortfolioAction{Date: *currentTime, Quantity: -bought, Name: ticker, Price: boughtAt, Low: boughtAt})
 
 		globals.Mutex.Unlock()
 	}
